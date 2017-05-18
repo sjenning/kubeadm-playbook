@@ -1,8 +1,37 @@
 ---
 - hosts: all
-  remote_user: centos
   become: yes
   become_method: sudo
   tasks:
   - name: Reset cluster
     command: /usr/bin/kubeadm reset
+    ignore_errors: yes
+    tags:
+    - reset
+
+  - name: systemctl stop kube*.*.slice
+    shell: 'for i in $(/usr/bin/systemctl list-unit-files --no-legend --no-pager -l | grep --color=never -o *.*.slice | grep kubepod);do echo $i; systemctl stop $i ; done'
+    tags:
+    - reset
+
+  - name: Remove before reinstall packages
+    package: name={{ item }} state=absent
+    with_items:
+    - kubelet
+    - kubeadm
+    - kubectl
+    - kubernetes-cni
+    when: full_kube_reinstall is defined and full_kube_reinstall
+    tags:
+    - kubelet
+    - uninstall
+    - reset
+
+  #https://github.com/kubernetes/kubernetes/issues/39557
+  - name: cni0 IP alloction issue
+    shell: 'rm -rf /var/lib/cni/ /var/lib/kubelet/* /etc/cni/ ; ifconfig cni0 down; ifconfig flannel.1 down;'
+    ignore_errors: yes
+    tags:
+    - uninstall
+    - reset
+

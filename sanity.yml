@@ -1,0 +1,29 @@
+---
+- hosts: master
+  become: yes
+  become_method: sudo
+  tasks:
+  - name: kubectl get nodes
+    environment:
+      KUBECONFIG: /etc/kubernetes/admin.conf
+    shell: "kubectl get nodes | tail -n +2 | grep -v -w 'Ready' || true "
+    register: command_result
+    tags:
+    - sanity_notes
+    - sanity
+    until: command_result.stdout == ""
+    retries: 40
+    delay: 3
+
+  - name: kubectl get nodes
+    environment:
+      KUBECONFIG: /etc/kubernetes/admin.conf
+    shell: "kubectl get --namespace kube-system pods | tail -n +2 | grep -v -w 'Running' || true "
+    register: command_result
+    tags:
+    - sanity_pods
+    - sanity
+    until: command_result.stdout == ""
+    retries: 30
+    delay: 3
+    
