@@ -24,5 +24,7 @@
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
 
-- name: Wait 1 minute for images pulls and cluster services to start
-  pause: minutes=1
+- name: confirm kubelet is started
+  wait_for:
+    port: 6443
+    host: "{{ groups['master'][0] }}"
